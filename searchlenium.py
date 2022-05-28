@@ -1,7 +1,7 @@
-from typing import Type
 from selenium import webdriver #pip install selenium
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException 
 import sys
 
 class ProductSearch:
@@ -32,7 +32,10 @@ class ProductSearch:
 
     def search_input(self, product):
         if self.store == "kabum":
-            search = self.driver.find_element_by_id("input-busca")
+            try:
+                search = self.driver.find_element_by_id("input-busca")
+            except NoSuchElementException:
+                search = self.driver.find_element_by_id("smarthint-search-input")
         elif self.store == "americanas":
             search = self.driver.find_element_by_class_name("search__InputUI-sc-1wvs0c1-2 dRQgOV")
         elif self.store == "amazon":
@@ -61,10 +64,12 @@ class ProductSearch:
         return self.name_price
 
     def best_products(self, product_dict):
-        if type(product_dict != dict):
-            pass
+        try:
+            if type(product_dict) != dict:
+                raise TypeError
+        except TypeError:
+            sys.exit("Wrong data type passed to 'best_products' method")
         
-
         cheapest = [val[0] for val in product_dict.values()]
         cheapest.sort()
         cheapest = cheapest[:3]
@@ -72,6 +77,19 @@ class ProductSearch:
         cheapest_dict = {}
 
         for key, value in product_dict.items():
-            if value[0] in cheapest:
+            if len(value) > 1 and value[0] in cheapest:
                 cheapest_dict.setdefault(key, value)
                 self.driver.execute_script(f"window.open('{value[1]}')")
+
+    def print_products(self, product_dict):
+        try:
+            if type(product_dict) != dict:
+                raise TypeError
+        except TypeError:
+            sys.exit("Wrong data type passed to 'print_products' method")
+
+        for key, value in product_dict.items():
+            print(f"{key}")
+            for i in range(len(value)):
+                print(f"{value[i]}")
+            print()
