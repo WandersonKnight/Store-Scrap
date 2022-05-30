@@ -1,3 +1,4 @@
+from os import read
 from selenium import webdriver #pip install selenium
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.keys import Keys
@@ -10,15 +11,15 @@ class ProductSearch:
         self.store = store.lower()
 
         self.custom_options = webdriver.EdgeOptions()
-        self.custom_options.add_experimental_option("detach", True)
+        self.custom_options.add_experimental_option("detach", True) #Mantém o browser aberto
 
         self.driver_path = Service("C:\Program Files (x86)\msedgedriver.exe") 
-        self.driver = webdriver.Edge(options=self.custom_options, service=self.driver_path) #open browser and keep open
+        self.driver = webdriver.Edge(options=self.custom_options, service=self.driver_path) #Abre o browser
 
         self.name_price = {}
 
     def store_list(self):
-        print("Kabum\nAmericanas\nAmazon")
+        print("Lojas disponiveis:\nKabum\nAmericanas\nAmazon")
 
     def start_selenium(self):
         if self.store == "kabum":
@@ -28,18 +29,21 @@ class ProductSearch:
         elif self.store == "amazon":
             self.driver.get("https://www.amazon.com.br/")
         else:
-            sys.exit("Erro: Store scrapping unavailable. Check your input")
+            sys.exit("Erro: Scraping indisponivel para esta loja. Verifique sua entrada")
 
     def search_input(self, product):
-        if self.store == "kabum":
-            try:
-                search = self.driver.find_element_by_id("input-busca")
-            except NoSuchElementException:
-                search = self.driver.find_element_by_id("smarthint-search-input")
-        elif self.store == "americanas":
-            search = self.driver.find_element_by_class_name("search__InputUI-sc-1wvs0c1-2 dRQgOV")
-        elif self.store == "amazon":
-            search = self.driver.find_element_by_id("twotabsearchtextbox")
+        try:
+            if self.store == "kabum":
+                if len(self.driver.find_elements_by_id("input-busca")) > 0:
+                    search = self.driver.find_element_by_id("input-busca")
+                else:
+                    search = self.driver.find_element_by_id("smarthint-search-input")
+            elif self.store == "americanas":
+                search = self.driver.find_element_by_class_name("search__InputUI-sc-1wvs0c1-2 dRQgOV")
+            elif self.store == "amazon":
+                search = self.driver.find_element_by_id("twotabsearchtextbox")
+        except NoSuchElementException:
+            sys.exit("Nao foi possivel encontrar o elemento na pagina. Por favor verifique o codigo fonte.")
 
         search.send_keys(product)
         search.send_keys(Keys.RETURN)
@@ -68,10 +72,10 @@ class ProductSearch:
             if type(product_dict) != dict:
                 raise TypeError
         except TypeError:
-            sys.exit("Wrong data type passed to 'best_products' method")
+            sys.exit("Objeto passado para o metodo 'best_products' nao e um dicionario")
         
         cheapest = [val[0] for val in product_dict.values()]
-        cheapest.sort()
+        cheapest = ScrapHelper.dict_sort(cheapest)
         cheapest = cheapest[:3]
 
         cheapest_dict = {}
@@ -86,10 +90,33 @@ class ProductSearch:
             if type(product_dict) != dict:
                 raise TypeError
         except TypeError:
-            sys.exit("Wrong data type passed to 'print_products' method")
+            sys.exit("Objeto passado para o metodo 'print_products' nao e um dicionario")
 
         for key, value in product_dict.items():
             print(f"{key}")
             for i in range(len(value)):
                 print(f"{value[i]}")
             print()
+
+class ScrapHelper:
+
+    def dict_sort(prices):
+        aux = []
+
+        for price in prices:
+            real_price = price.strip("R$ ")
+            real_price = real_price.replace(".", "")
+            real_price = real_price.replace(",", ".")
+            aux.append(float(real_price))
+
+        aux.sort()
+
+        for i in range(len(aux)):
+            print(aux[i])
+            "{:,}".format(aux[i])
+            aux[i] = aux[i].replace(",", ".")
+            aux[i] = aux[i].replace(",", ".", 1, reversed)
+            aux[i] = f"R$ {real_price[i]}"
+            print(aux[i])
+            
+        return aux
