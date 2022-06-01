@@ -97,7 +97,7 @@ class ScrapHelper:
         for price in prices:
             real_price = price.strip("R$ ")
             real_price = real_price.replace(".", "")
-            if real_price.find(",") != -1:
+            if "," in real_price:
                 real_price = real_price[:real_price.find(",")]
             aux.append(int(real_price))
 
