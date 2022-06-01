@@ -20,4 +20,4 @@ else:
 
 product_dict = store.get_products()
 store.best_products(product_dict)
-#store.print_products(product_dict)
+store.print_products(product_dict)

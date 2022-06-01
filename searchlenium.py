@@ -71,7 +71,7 @@ class ProductSearch:
 
         for value in product_dict.values():
             temp_value = value[0]
-            if temp_value[0].find(",") != -1:
+            if "," in temp_value:
                 temp_value = temp_value[:temp_value.find(",")]
             if len(value) > 1 and temp_value in cheapest:
                 self.driver.execute_script(f"window.open('{value[1]}')")
