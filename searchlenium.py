@@ -1,4 +1,3 @@
-from os import read
 from selenium import webdriver #pip install selenium
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.keys import Keys
@@ -19,15 +18,13 @@ class ProductSearch:
         self.name_price = {}
 
     def store_list(self):
-        print("Lojas disponiveis:\nKabum\nAmericanas\nAmazon")
+        print("Lojas disponiveis:\nKabum\nMercado Livre")
 
     def start_selenium(self):
         if self.store == "kabum":
             self.driver.get("https://www.kabum.com.br/")
-        elif self.store == "americanas":
-            self.driver.get("https://www.americanas.com.br/")
-        elif self.store == "amazon":
-            self.driver.get("https://www.amazon.com.br/")
+        elif self.store == "mercadolivre":
+            self.driver.get("https://www.mercadolivre.com.br/")
         else:
             sys.exit("Erro: Scraping indisponivel para esta loja. Verifique sua entrada")
 
@@ -38,10 +35,8 @@ class ProductSearch:
                     search = self.driver.find_element_by_id("input-busca")
                 else:
                     search = self.driver.find_element_by_id("smarthint-search-input")
-            elif self.store == "americanas":
-                search = self.driver.find_element_by_class_name("search__InputUI-sc-1wvs0c1-2 dRQgOV")
-            elif self.store == "amazon":
-                search = self.driver.find_element_by_id("twotabsearchtextbox")
+            elif self.store == "mercadolivre":
+                search = self.driver.find_element_by_xpath("/html/body/header/div/form/input")
         except NoSuchElementException:
             sys.exit("Nao foi possivel encontrar o elemento na pagina. Por favor verifique o codigo fonte.")
 
@@ -53,16 +48,12 @@ class ProductSearch:
             name_list = self.driver.find_elements_by_xpath("//span[contains(@class,'sc-csvncw gASsfm')]")
             price_list = self.driver.find_elements_by_xpath("//span[contains(@class,'sc-dwLEzm')]")
             address_list = [link.get_attribute('href') for link in self.driver.find_elements_by_xpath("//div[contains(@class,'sc-WCkqM')]/a")]
-        elif self.store == "americanas":
-            name_list = self.driver.find_elements_by_xpath("//h3[contains(@class,'product-name__Name-sc-1shovj0-0')]")
-            price_list = self.driver.find_elements_by_xpath("//span[contains(@class,'src__Text-sc-154pg0p-0')]")
-            address_list = [link.get_attribute('href') for link in self.driver.find_elements_by_xpath("//div[@class='inStockCard__Wrapper-sc-1ngt5zo-0']/a")]
-        elif self.store == "amazon":
-            name_list = self.driver.find_elements_by_xpath("//span[contains(@class,'a-size-base-plus')]")
-            price_list = self.driver.find_elements_by_xpath("//span[contains(@class,'a-price-whole')]")
-            address_list = [link.get_attribute('href') for link in self.driver.find_elements_by_xpath("//h2[contains(@class,'a-size-mini')]/a")]
+        elif self.store == "mercadolivre":
+            name_list = self.driver.find_elements_by_xpath("//h2[contains(@class,'ui-search-item__title')]")
+            price_list = self.driver.find_elements_by_xpath("//div[contains(@class,'ui-search-item__group__element')]/div/div/span/span/span[contains(@class,'price-tag-fraction')]")
+            address_list = [link.get_attribute('href') for link in self.driver.find_elements_by_xpath("//div[contains(@class,'ui-search-result__image')]/a")]
 
-        for i in range(len(name_list)):
+        for i in range(len(price_list)):
             self.name_price.setdefault(name_list[i].text, [price_list[i].text, address_list[i]])
 
         return self.name_price
@@ -72,17 +63,17 @@ class ProductSearch:
             if type(product_dict) != dict:
                 raise TypeError
         except TypeError:
-            sys.exit("Objeto passado para o metodo 'best_products' nao e um dicionario")
+            sys.exit("Objeto fornecido para o metodo 'best_products' nao e um dicionario")
         
         cheapest = [val[0] for val in product_dict.values()]
-        cheapest = ScrapHelper.dict_sort(cheapest)
-        cheapest = cheapest[:3]
+        cheapest = ScrapHelper.dict_sort(cheapest, self.store)
+        cheapest = cheapest[:4]
 
-        cheapest_dict = {}
-
-        for key, value in product_dict.items():
-            if len(value) > 1 and value[0] in cheapest:
-                cheapest_dict.setdefault(key, value)
+        for value in product_dict.values():
+            temp_value = value[0]
+            if temp_value[0].find(",") != -1:
+                temp_value = temp_value[:temp_value.find(",")]
+            if len(value) > 1 and temp_value in cheapest:
                 self.driver.execute_script(f"window.open('{value[1]}')")
 
     def print_products(self, product_dict):
@@ -90,7 +81,7 @@ class ProductSearch:
             if type(product_dict) != dict:
                 raise TypeError
         except TypeError:
-            sys.exit("Objeto passado para o metodo 'print_products' nao e um dicionario")
+            sys.exit("Objeto fornecido para o metodo 'print_products' nao e um dicionario")
 
         for key, value in product_dict.items():
             print(f"{key}")
@@ -100,23 +91,22 @@ class ProductSearch:
 
 class ScrapHelper:
 
-    def dict_sort(prices):
+    def dict_sort(prices, store):
         aux = []
 
         for price in prices:
             real_price = price.strip("R$ ")
             real_price = real_price.replace(".", "")
-            real_price = real_price.replace(",", ".")
-            aux.append(float(real_price))
+            if real_price.find(",") != -1:
+                real_price = real_price[:real_price.find(",")]
+            aux.append(int(real_price))
 
         aux.sort()
 
         for i in range(len(aux)):
-            print(aux[i])
-            "{:,}".format(aux[i])
+            aux[i] = "{:,}".format(aux[i])
             aux[i] = aux[i].replace(",", ".")
-            aux[i] = aux[i].replace(",", ".", 1, reversed)
-            aux[i] = f"R$ {real_price[i]}"
-            print(aux[i])
+            if store != "mercadolivre":
+                aux[i] = f"R$ {aux[i]}"
             
         return aux
