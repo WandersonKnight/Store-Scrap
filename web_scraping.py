@@ -10,7 +10,7 @@ if len(sys.argv) > 3 and sys.argv[1].lower() == "mercado":
 elif len(sys.argv) > 2:
     store =  ProductSearch(sys.argv[1].lower())
 else:
-    print("Argumentos invalidos")
+    print("Invalid arguments")
     exit()
 
 store.store_list()
